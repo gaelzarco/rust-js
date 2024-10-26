@@ -1,7 +1,7 @@
 use std::{
     fs::File,
-    io::{ Read, Write },
-    net::{ TcpListener, TcpStream },
+    io::{Read, Write},
+    net::{TcpListener, TcpStream},
 };
 
 const HOST: &str = "127.0.0.1";
@@ -12,13 +12,30 @@ fn file_to_str(file_name: String) -> Option<String> {
 
     match File::open(file_name).unwrap().read_to_string(&mut file_str) {
         Ok(_) => {
-            Some(file_str)
-        },
+            // Prepare HTTP response with headers
+            let res = format!(
+                "HTTP/1.1 200 Ok\r\ncontent-length: {}\r\ncontent-type: text/html\r\n\r\n{}",
+                file_str.len(),
+                file_str
+            );
+
+            Some(res)
+        }
         Err(e) => {
             println!("Error reading file: {:?}", e);
-            None 
+            None
         }
-    } 
+    }
+}
+
+fn bad_request_res(msg: String) -> String {
+    let res = format!(
+        "HTTP/1.1 400 Not Found\r\ncontent-length: {}\r\ncontent-type: text/plain\r\n\r\n{}",
+        msg.len(),
+        msg
+    );
+
+    res
 }
 
 fn handle_client(mut stream: TcpStream) {
@@ -29,30 +46,21 @@ fn handle_client(mut stream: TcpStream) {
         Ok(size) => {
             req.push_str(&String::from_utf8_lossy(&buff[..size]));
             match req {
-               _r if req.starts_with("GET / ") => {
-                   println!("Client requesting index page...");
-                    // Serve the file content
-                   match file_to_str(String::from("client/index.html")) {
-                        Some(content) => {
-                            // Prepare HTTP response with headers
-                            let res = format!(
-                                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: text/html\r\n\r\n{}",
-                                content.len(),
-                                content
-                            );
-                            
-                            println!("Response sent to client: {}", res);
-                            // Send response to client
-                            stream.write(res.as_bytes()).unwrap();
-                            stream.flush().unwrap();
-                        }
-                        None => {
-                            
-                        }
-                   }
+                _ if req.starts_with("GET / ") => {
+                    // Retrieve file contents
+                    let res = file_to_str(String::from("client/index.html")).unwrap();
 
-               },
-               _ => (),
+                    // Send response to client
+                    stream.write(res.as_bytes()).unwrap();
+                    stream.flush().unwrap();
+                }
+                _ => {
+                    let res =
+                        bad_request_res(String::from("404 BAD REQUEST This page does not exist."));
+
+                    stream.write(res.as_bytes()).unwrap();
+                    stream.flush().unwrap();
+                }
             }
         }
         Err(e) => println!("Error reading stream into buffer: {:?}", e),
@@ -62,9 +70,9 @@ fn handle_client(mut stream: TcpStream) {
 fn main() {
     let listener = match TcpListener::bind(HOST.to_owned() + ":" + PORT) {
         Ok(listener) => {
-            println!("Game server Listening on {}:{}", &HOST, &PORT );
+            println!("Game server Listening on {}:{}", &HOST, &PORT);
             listener
-        },
+        }
         Err(e) => {
             panic!("Error instantiating TCP listener: {:?}", e);
         }

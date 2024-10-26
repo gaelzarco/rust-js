@@ -1,15 +1,82 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>HTML 5 Boilerplate</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="index.js" deferred></script>
-  </head>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>HTML 5 Boilerplate</title>
+        <!-- <link rel="stylesheet" href="style.css" /> -->
+        <!-- <script src="index.js" deferred></script> -->
+        <style>
+            html,
+            body {
+                height: 100%;
+                width: 100%;
+                padding: 0;
+                margin: 0;
+                overflow: hidden;
+                display: block;
+                color: white;
+            }
 
-  <body>
-    <h1>JS Game HTML</h1>
-  </body>
+            #world {
+                background: black;
+            }
+        </style>
+    </head>
+
+    <body>
+        <section id="errBox"></section>
+        <canvas id="world" width="500" height="500"></canvas>
+    </body>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            /*
+            *************************************************
+              World logic
+            *************************************************
+            */
+            const world = document.querySelector("#world");
+            if (!world) {
+                let errBox = document.querySelector("#errBox");
+                if (errBox) {
+                    let errMsg = document.createElement("h1");
+                    errMsg.textContent = "Game canvas could not be found";
+                    errBox.appendChild(errMsg);
+                }
+            }
+
+            function resizeWorld() {
+                world.width = window.innerWidth;
+                world.height = window.innerHeight;
+            }
+            window.addEventListener("resize", resizeWorld);
+
+            /*
+            *************************************************
+              Asset logic
+            *************************************************
+            */
+            const ctx = world.getContext("2d");
+
+            function draw() {
+                ctx.beginPath();
+                ctx.rect(20, 40, 50, 50);
+                ctx.fillStyle = "#FF0000";
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            window.addEventListener("resize", draw);
+
+            /*
+            *************************************************
+              Initialize Game State
+            *************************************************
+            */
+            resizeWorld();
+            draw();
+        });
+    </script>
 </html>
