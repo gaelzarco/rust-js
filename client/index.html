@@ -55,28 +55,71 @@
 
             /*
             *************************************************
-              Asset logic
+              Initialize State
             *************************************************
             */
             const ctx = world.getContext("2d");
 
+            // MAIN CHARACTER
+            let rectPos = new Map();
+            rectPos.set("dL", 20);
+            rectPos.set("dT", 20);
+
+            // ASSETS
+            let assetPos = new Map();
+            assetPos.set("dL", 200);
+            assetPos.set("dT", 200);
+
             function draw() {
-                ctx.beginPath();
-                ctx.rect(20, 40, 50, 50);
-                ctx.fillStyle = "#FF0000";
-                ctx.fill();
-                ctx.closePath();
+              ctx.beginPath();
+              ctx.rect(
+                rectPos.get("dL"),
+                rectPos.get("dT"),
+                50,
+                50
+              );
+              ctx.fillStyle = "#FF0000";
+              ctx.fill();
+              ctx.closePath();
+
+              ctx.beginPath();
+              ctx.rect(
+                assetPos.get("dL"),
+                assetPos.get("dT"),
+                50,
+                50
+              );
+              ctx.fillStyle = "#FFFFFF";
+              ctx.fill();
+              ctx.closePath();
             }
 
             window.addEventListener("resize", draw);
 
-            /*
-            *************************************************
-              Initialize Game State
-            *************************************************
-            */
             resizeWorld();
             draw();
+
+            /*
+            *************************************************
+              Logic 
+            *************************************************
+            */
+            document.addEventListener("keydown", (e) => {
+              if (e.code === "ArrowUp") {
+                rectPos.set("dT", (rectPos.get("dT") - 10));
+              }
+              if (e.code === "ArrowDown") {
+                rectPos.set("dT", (rectPos.get("dT") + 10));
+              }
+              if (e.code === "ArrowLeft") {
+                rectPos.set("dL", (rectPos.get("dL") - 10));
+              }
+              if (e.code === "ArrowRight") {
+                rectPos.set("dL", (rectPos.get("dL") + 10));
+              }
+              ctx.reset();
+              draw();
+            });
         });
     </script>
 </html>
