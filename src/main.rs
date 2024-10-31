@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{Read, Write},
+    io::{ Read, Write },
     net::{TcpListener, TcpStream},
 };
 
@@ -39,20 +39,35 @@ fn bad_request_res(msg: String) -> String {
 }
 
 fn handle_client(mut stream: TcpStream) {
-    let mut buff = [0; 1024];
-    let mut req = String::new();
+    let mut buf = [0; 1024];
+    let mut r = String::new();
 
-    match stream.read(&mut buff) {
+    match stream.read(&mut buf) {
         Ok(size) => {
-            req.push_str(&String::from_utf8_lossy(&buff[..size]));
-            match req {
-                _ if req.starts_with("GET / ") => {
-                    // Retrieve file contents
-                    let res = file_to_str(String::from("client/index.html")).unwrap();
+            r.push_str(&String::from_utf8_lossy(&buf[..size]));
+            match r {
+                _ if r.starts_with("GET / ") => {
+                    // Res file contents
+                    let r = file_to_str(String::from("client/index.html")).unwrap();
 
                     // Send response to client
-                    stream.write(res.as_bytes()).unwrap();
+                    stream.write(r.as_bytes()).unwrap();
                     stream.flush().unwrap();
+                }
+                _ if r.starts_with("GET /ws_test") => {
+                    let split_r = r.rsplit("\r\n");
+                    let mut ws_k = String::from("");
+
+                    for l in split_r {
+                        println!("{:?}", l);
+                        if l.starts_with("Sec-WebSocket-Key:") {
+                            let k = l.to_owned().split_off(18);
+                            ws_k.push_str(k.trim());
+                            break
+                        }
+                    }
+
+                    println!("{:?}", ws_k);
                 }
                 _ => {
                     let res =
