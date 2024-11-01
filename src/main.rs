@@ -28,7 +28,7 @@ fn file_to_str(file_name: String) -> Option<String> {
     }
 }
 
-fn bad_request_res(msg: String) -> String {
+fn bad_req_res(msg: String) -> String {
     let res = format!(
         "HTTP/1.1 400 Not Found\r\ncontent-length: {}\r\ncontent-type: text/plain\r\n\r\n{}",
         msg.len(),
@@ -36,6 +36,9 @@ fn bad_request_res(msg: String) -> String {
     );
 
     res
+}
+
+fn _wsp_switch_res() {
 }
 
 fn handle_client(mut stream: TcpStream) {
@@ -57,22 +60,48 @@ fn handle_client(mut stream: TcpStream) {
                 _ if r.starts_with("GET /ws_test") => {
                     let split_r = r.rsplit("\r\n");
                     let mut ws_k = String::from("");
+                    let mut err: bool = false; 
 
                     for l in split_r {
-                        println!("{:?}", l);
                         if l.starts_with("Sec-WebSocket-Key:") {
                             let k = l.to_owned().split_off(18);
+                            println!("{}", k);
                             ws_k.push_str(k.trim());
-                            break
+                            continue
+                        } 
+
+                        if l.starts_with("Sec-WebSocket-Protocol:") {
+                            let p = l.to_owned().split_off(23);
+
+                            if !p.contains("chat") {
+                                err = true;
+                                break
+                            }
+                            println!("{}", p);
                         }
+
+                        if l.starts_with("Host:") {
+                            let h = l.to_owned().split_off(6);
+
+                            if h != "localhost:5000" {
+                                err = true;
+                                break
+                            }
+                            println!("{}", h);
+                        }
+
                     }
 
-                    println!("{:?}", ws_k);
+                    if err {
+                        println!("ERROR: RECEIVED POOR CLIENT WEBSOCKET CLIENT HANDSHAKE REQUEST");
+                        let res = bad_req_res(String::from("BAD CLIENT WEBSOCKET HANDSHAKE INITIATION")); 
+                        stream.write(res.as_bytes()).unwrap();
+                        stream.flush().unwrap();
+                        return
+                    }
                 }
                 _ => {
-                    let res =
-                        bad_request_res(String::from("404 BAD REQUEST This page does not exist."));
-
+                    let res = bad_req_res(String::from("404 BAD REQUEST This page does not exist."));
                     stream.write(res.as_bytes()).unwrap();
                     stream.flush().unwrap();
                 }
