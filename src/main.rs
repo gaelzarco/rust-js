@@ -3,11 +3,12 @@ use std::{
     io::{ Read, Write },
     net::{TcpListener, TcpStream},
 };
+use base64::prelude::*;
 
 const HOST: &str = "127.0.0.1";
 const PORT: &str = "5000";
 
-fn file_to_str(file_name: String) -> Option<String> {
+fn file_res(file_name: String) -> Option<String> {
     let mut file_str = String::new();
 
     match File::open(file_name).unwrap().read_to_string(&mut file_str) {
@@ -38,7 +39,17 @@ fn bad_req_res(msg: String) -> String {
     res
 }
 
-fn _wsp_switch_res() {
+fn ws_switch_protocol_res(ws_k: String) -> String {
+    let guid = String::from("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+    let hash = sha1_smol::Sha1::from(ws_k + &guid).digest().bytes();
+    let b64_hash = BASE64_STANDARD.encode(hash);
+
+    let res = format!(
+        "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {}\r\nSec-WebSocket-Protocol: chat\r\n\r\n",
+       b64_hash
+    );
+
+    res
 }
 
 fn handle_client(mut stream: TcpStream) {
@@ -51,7 +62,7 @@ fn handle_client(mut stream: TcpStream) {
             match r {
                 _ if r.starts_with("GET / ") => {
                     // Res file contents
-                    let r = file_to_str(String::from("client/index.html")).unwrap();
+                    let r = file_res(String::from("client/index.html")).unwrap();
 
                     // Send response to client
                     stream.write(r.as_bytes()).unwrap();
@@ -65,7 +76,6 @@ fn handle_client(mut stream: TcpStream) {
                     for l in split_r {
                         if l.starts_with("Sec-WebSocket-Key:") {
                             let k = l.to_owned().split_off(18);
-                            println!("{}", k);
                             ws_k.push_str(k.trim());
                             continue
                         } 
@@ -77,7 +87,6 @@ fn handle_client(mut stream: TcpStream) {
                                 err = true;
                                 break
                             }
-                            println!("{}", p);
                         }
 
                         if l.starts_with("Host:") {
@@ -87,7 +96,6 @@ fn handle_client(mut stream: TcpStream) {
                                 err = true;
                                 break
                             }
-                            println!("{}", h);
                         }
 
                     }
@@ -99,6 +107,13 @@ fn handle_client(mut stream: TcpStream) {
                         stream.flush().unwrap();
                         return
                     }
+
+                    println!("SUCCESSFULLY RECEIVED WEBSOCKET HANDSHAKE REQUEST");
+                    let res = ws_switch_protocol_res(ws_k);
+                    println!("RESPONSE SENT: {}", res);
+                    
+                    stream.write(res.as_bytes()).unwrap();
+                    stream.flush().unwrap();
                 }
                 _ => {
                     let res = bad_req_res(String::from("404 BAD REQUEST This page does not exist."));
