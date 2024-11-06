@@ -39,7 +39,7 @@ fn bad_req_res(msg: String) -> String {
     res
 }
 
-fn ws_switch_protocol_res(ws_k: String) -> String {
+fn form_res(ws_k: String) -> String {
     let guid = String::from("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
     let hash = sha1_smol::Sha1::from(ws_k + &guid).digest().bytes();
     let b64_hash = BASE64_STANDARD.encode(hash);
@@ -49,6 +49,50 @@ fn ws_switch_protocol_res(ws_k: String) -> String {
        b64_hash
     );
 
+    res
+}
+
+fn handle_req(req: String) -> String {
+    let split_r = req.rsplit("\r\n");
+    let mut ws_k = String::from("");
+    let mut err: bool = false; 
+
+    for l in split_r {
+        if l.starts_with("Sec-WebSocket-Key:") {
+            let k = l.to_owned().split_off(18);
+            ws_k.push_str(k.trim());
+            continue
+        } 
+
+        if l.starts_with("Sec-WebSocket-Protocol:") {
+            let p = l.to_owned().split_off(23);
+
+            if !p.contains("chat") {
+                err = true;
+                break
+            }
+        }
+
+        if l.starts_with("Host:") {
+            let h = l.to_owned().split_off(6);
+
+            if h != "localhost:5000" {
+                err = true;
+                break
+            }
+        }
+
+    }
+
+    if err {
+        println!("ERROR: RECEIVED POOR CLIENT WEBSOCKET CLIENT HANDSHAKE REQUEST");
+        let res = bad_req_res(String::from("BAD CLIENT WEBSOCKET HANDSHAKE INITIATION")); 
+        return res
+    }
+
+    println!("SUCCESSFULLY RECEIVED WEBSOCKET HANDSHAKE REQUEST");
+    let res = form_res(ws_k);
+    println!("RESPONSE SENT: {}", res);
     res
 }
 
@@ -69,57 +113,18 @@ fn handle_client(mut stream: TcpStream) {
                     stream.flush().unwrap();
                 }
                 _ if r.starts_with("GET /ws_test") => {
-                    let split_r = r.rsplit("\r\n");
-                    let mut ws_k = String::from("");
-                    let mut err: bool = false; 
+                    let r = handle_req(r);
 
-                    for l in split_r {
-                        if l.starts_with("Sec-WebSocket-Key:") {
-                            let k = l.to_owned().split_off(18);
-                            ws_k.push_str(k.trim());
-                            continue
-                        } 
-
-                        if l.starts_with("Sec-WebSocket-Protocol:") {
-                            let p = l.to_owned().split_off(23);
-
-                            if !p.contains("chat") {
-                                err = true;
-                                break
-                            }
-                        }
-
-                        if l.starts_with("Host:") {
-                            let h = l.to_owned().split_off(6);
-
-                            if h != "localhost:5000" {
-                                err = true;
-                                break
-                            }
-                        }
-
-                    }
-
-                    if err {
-                        println!("ERROR: RECEIVED POOR CLIENT WEBSOCKET CLIENT HANDSHAKE REQUEST");
-                        let res = bad_req_res(String::from("BAD CLIENT WEBSOCKET HANDSHAKE INITIATION")); 
-                        stream.write(res.as_bytes()).unwrap();
-                        stream.flush().unwrap();
-                        return
-                    }
-
-                    println!("SUCCESSFULLY RECEIVED WEBSOCKET HANDSHAKE REQUEST");
-                    let res = ws_switch_protocol_res(ws_k);
-                    println!("RESPONSE SENT: {}", res);
-                    
-                    stream.write(res.as_bytes()).unwrap();
+                    stream.write(r.as_bytes()).unwrap();
                     stream.flush().unwrap();
+
                 }
                 _ => {
                     let res = bad_req_res(String::from("404 BAD REQUEST This page does not exist."));
                     stream.write(res.as_bytes()).unwrap();
                     stream.flush().unwrap();
                 }
+
             }
         }
         Err(e) => println!("Error reading stream into buffer: {:?}", e),
