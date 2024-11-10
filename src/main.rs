@@ -5,6 +5,8 @@ use std::{
 };
 use base64::prelude::*;
 
+pub mod header;
+
 const HOST: &str = "127.0.0.1";
 const PORT: &str = "5000";
 
@@ -58,6 +60,7 @@ fn handle_req(req: String) -> String {
     let mut err: bool = false; 
 
     for l in split_r {
+        println!("{:?}", l);
         if l.starts_with("Sec-WebSocket-Key:") {
             let k = l.to_owned().split_off(18);
             ws_k.push_str(k.trim());
