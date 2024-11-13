@@ -1,103 +1,16 @@
+pub mod websocket;
+pub mod helpers;
+
 use std::{
-    fs::File,
     io::{ Read, Write },
     net::{TcpListener, TcpStream},
 };
-use base64::prelude::*;
-
-pub mod header;
+use crate::websocket::handle_req;
+use crate::helpers::{ file_res, bad_req_res };
 
 const HOST: &str = "127.0.0.1";
 const PORT: &str = "5000";
 
-fn file_res(file_name: String) -> Option<String> {
-    let mut file_str = String::new();
-
-    match File::open(file_name).unwrap().read_to_string(&mut file_str) {
-        Ok(_) => {
-            // Prepare HTTP response with headers
-            let res = format!(
-                "HTTP/1.1 200 Ok\r\ncontent-length: {}\r\ncontent-type: text/html\r\n\r\n{}",
-                file_str.len(),
-                file_str
-            );
-
-            Some(res)
-        }
-        Err(e) => {
-            println!("Error reading file: {:?}", e);
-            None
-        }
-    }
-}
-
-fn bad_req_res(msg: String) -> String {
-    let res = format!(
-        "HTTP/1.1 400 Not Found\r\ncontent-length: {}\r\ncontent-type: text/plain\r\n\r\n{}",
-        msg.len(),
-        msg
-    );
-
-    res
-}
-
-fn form_res(ws_k: String) -> String {
-    let guid = String::from("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-    let hash = sha1_smol::Sha1::from(ws_k + &guid).digest().bytes();
-    let b64_hash = BASE64_STANDARD.encode(hash);
-
-    let res = format!(
-        "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {}\r\nSec-WebSocket-Protocol: chat\r\n\r\n",
-       b64_hash
-    );
-
-    res
-}
-
-fn handle_req(req: String) -> String {
-    let split_r = req.rsplit("\r\n");
-    let mut ws_k = String::from("");
-    let mut err: bool = false; 
-
-    for l in split_r {
-        println!("{:?}", l);
-        if l.starts_with("Sec-WebSocket-Key:") {
-            let k = l.to_owned().split_off(18);
-            ws_k.push_str(k.trim());
-            continue
-        } 
-
-        if l.starts_with("Sec-WebSocket-Protocol:") {
-            let p = l.to_owned().split_off(23);
-
-            if !p.contains("chat") {
-                err = true;
-                break
-            }
-        }
-
-        if l.starts_with("Host:") {
-            let h = l.to_owned().split_off(6);
-
-            if h != "localhost:5000" {
-                err = true;
-                break
-            }
-        }
-
-    }
-
-    if err {
-        println!("ERROR: RECEIVED POOR CLIENT WEBSOCKET CLIENT HANDSHAKE REQUEST");
-        let res = bad_req_res(String::from("BAD CLIENT WEBSOCKET HANDSHAKE INITIATION")); 
-        return res
-    }
-
-    println!("SUCCESSFULLY RECEIVED WEBSOCKET HANDSHAKE REQUEST");
-    let res = form_res(ws_k);
-    println!("RESPONSE SENT: {}", res);
-    res
-}
 
 fn handle_client(mut stream: TcpStream) {
     let mut buf = [0; 1024];
