@@ -20,7 +20,8 @@ pub fn protocol_switch(hash: String) -> String {
     let res = format!(
         "HTTP/1.1 101 Switching Protocols\r\n
         Upgrade: websocket\r\n
-        Connection: Upgrade\r\n{}: {}\r\n
+        Connection: Upgrade\r\n
+        {}: {}\r\n
         {}: chat\r\n\r\n",
         protocol_types::PROTOCOL,
         protocol_types::ACCEPT,

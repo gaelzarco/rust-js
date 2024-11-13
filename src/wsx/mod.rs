@@ -1,5 +1,4 @@
-use crate::helpers::bad_req_res;
-use crate::websocket::header::{ create_hash, protocol_switch };
+use crate::helpers;
 
 pub mod header;
 
@@ -41,12 +40,12 @@ pub fn handle_req(req: String) -> String {
 
     if err {
         println!("ERROR: RECEIVED POOR CLIENT WEBSOCKET CLIENT HANDSHAKE REQUEST");
-        let res = bad_req_res(String::from("BAD CLIENT WEBSOCKET HANDSHAKE INITIATION")); 
+        let res = helpers::bad_req_res(String::from("BAD CLIENT WEBSOCKET HANDSHAKE INITIATION")); 
         return res
     }
 
     println!("SUCCESSFULLY RECEIVED WEBSOCKET HANDSHAKE REQUEST");
-    let wsk_hash = create_hash(wsk);
-    let pro_switch = protocol_switch(wsk_hash);
+    let wsk_hash = header::create_hash(wsk);
+    let pro_switch = header::protocol_switch(wsk_hash);
     pro_switch 
 }
