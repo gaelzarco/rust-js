@@ -1,125 +1,146 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-        <title>HTML 5 Boilerplate</title>
-        <!-- <link rel="stylesheet" href="style.css" /> -->
-        <!-- <script src="index.js" deferred></script> -->
-        <style>
-            html,
-            body {
-                height: 100%;
-                width: 100%;
-                padding: 0;
-                margin: 0;
-                overflow: hidden;
-                display: block;
-                color: white;
-            }
 
-            #world {
-                background: black;
-            }
-        </style>
-    </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>HTML 5 Boilerplate</title>
+  <!-- <link rel="stylesheet" href="style.css" /> -->
+  <!-- <script src="index.js" deferred></script> -->
+  <style>
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+      display: block;
+      color: white;
+    }
 
-    <body>
-        <section id="errBox"></section>
-        <canvas id="world" width="500" height="500"></canvas>
-    </body>
+    #world {
+      background: black;
+    }
+  </style>
+</head>
+<script>
+  // Create WebSocket connection.
+  const socket = new WebSocket("ws://127.0.0.1:5000/ws");
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            /*
-            *************************************************
-              World logic
-            *************************************************
-            */
-            const world = document.querySelector("#world");
-            if (!world) {
-                let errBox = document.querySelector("#errBox");
-                if (errBox) {
-                    let errMsg = document.createElement("h1");
-                    errMsg.textContent = "Game canvas could not be found";
-                    errBox.appendChild(errMsg);
-                }
-            }
+  if (socket) {
+    socket.send("Here's some text that the server is urgently awaiting!");
 
-            function resizeWorld() {
-                world.width = window.innerWidth;
-                world.height = window.innerHeight;
-            }
-            window.addEventListener("resize", resizeWorld);
+    // Connection opened
+    socket.addEventListener("open", (event) => {
+      socket.send("Hello Server!");
+    });
 
-            /*
-            *************************************************
-              Initialize State
-            *************************************************
-            */
-            const ctx = world.getContext("2d");
+    // Listen for messages
+    socket.addEventListener("message", (event) => {
+      console.log("Message from server ", event.data);
+    });
+  }
 
-            // MAIN CHARACTER
-            let rectPos = new Map();
-            rectPos.set("dL", 20);
-            rectPos.set("dT", 20);
+</script>
 
-            // ASSETS
-            let assetPos = new Map();
-            assetPos.set("dL", 200);
-            assetPos.set("dT", 200);
+<body>
+  <section id="errBox"></section>
+  <canvas id="world" width="500" height="500"></canvas>
+</body>
 
-            function draw() {
-              ctx.beginPath();
-              ctx.rect(
-                rectPos.get("dL"),
-                rectPos.get("dT"),
-                50,
-                50
-              );
-              ctx.fillStyle = "#FF0000";
-              ctx.fill();
-              ctx.closePath();
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    /*
+    *************************************************
+      World logic
+    *************************************************
+    */
+    const world = document.querySelector("#world");
+    if (!world) {
+      let errBox = document.querySelector("#errBox");
+      if (errBox) {
+        let errMsg = document.createElement("h1");
+        errMsg.textContent = "Game canvas could not be found";
+        errBox.appendChild(errMsg);
+      }
+    }
 
-              ctx.beginPath();
-              ctx.rect(
-                assetPos.get("dL"),
-                assetPos.get("dT"),
-                50,
-                50
-              );
-              ctx.fillStyle = "#FFFFFF";
-              ctx.fill();
-              ctx.closePath();
-            }
+    function resizeWorld() {
+      world.width = window.innerWidth;
+      world.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeWorld);
 
-            window.addEventListener("resize", draw);
+    /*
+    *************************************************
+      Initialize State
+    *************************************************
+    */
+    const ctx = world.getContext("2d");
 
-            resizeWorld();
-            draw();
+    // MAIN CHARACTER
+    let rectPos = new Map();
+    rectPos.set("dL", 20);
+    rectPos.set("dT", 20);
 
-            /*
-            *************************************************
-              Logic 
-            *************************************************
-            */
-            document.addEventListener("keydown", (e) => {
-              if (e.code === "ArrowUp") {
-                rectPos.set("dT", (rectPos.get("dT") - 10));
-              }
-              if (e.code === "ArrowDown") {
-                rectPos.set("dT", (rectPos.get("dT") + 10));
-              }
-              if (e.code === "ArrowLeft") {
-                rectPos.set("dL", (rectPos.get("dL") - 10));
-              }
-              if (e.code === "ArrowRight") {
-                rectPos.set("dL", (rectPos.get("dL") + 10));
-              }
-              ctx.reset();
-              draw();
-            });
-        });
-    </script>
+    // ASSETS
+    let assetPos = new Map();
+    assetPos.set("dL", 200);
+    assetPos.set("dT", 200);
+
+    function draw() {
+      ctx.beginPath();
+      ctx.rect(
+        rectPos.get("dL"),
+        rectPos.get("dT"),
+        50,
+        50
+      );
+      ctx.fillStyle = "#FF0000";
+      ctx.fill();
+      ctx.closePath();
+
+      ctx.beginPath();
+      ctx.rect(
+        assetPos.get("dL"),
+        assetPos.get("dT"),
+        50,
+        50
+      );
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    window.addEventListener("resize", draw);
+
+    resizeWorld();
+    draw();
+
+    /*
+    *************************************************
+      Logic 
+    *************************************************
+    */
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "ArrowUp") {
+        rectPos.set("dT", (rectPos.get("dT") - 10));
+      }
+      if (e.code === "ArrowDown") {
+        rectPos.set("dT", (rectPos.get("dT") + 10));
+      }
+      if (e.code === "ArrowLeft") {
+        rectPos.set("dL", (rectPos.get("dL") - 10));
+      }
+      if (e.code === "ArrowRight") {
+        rectPos.set("dL", (rectPos.get("dL") + 10));
+      }
+      ctx.reset();
+      draw();
+    });
+  });
+</script>
+
 </html>
